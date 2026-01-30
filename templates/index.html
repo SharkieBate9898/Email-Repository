@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lead Outreach Assistant</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header>
+        <h1>Lead Outreach Assistant</h1>
+        <p>
+          Start the assistant to scan for low-performing sites, score them, and
+          generate outreach emails.
+        </p>
+      </header>
+      <section class="card">
+        <div class="status">
+          <span>Status:</span>
+          <strong id="status">Stopped</strong>
+        </div>
+        <button id="toggle" class="primary">Start Assistant</button>
+        <p class="note">
+          The assistant will keep running until you click stop. Configure your
+          email settings in <code>.env</code> to send messages to yourself.
+        </p>
+      </section>
+      <section class="card logs">
+        <h2>Activity Log</h2>
+        <ul id="log-list"></ul>
+      </section>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
