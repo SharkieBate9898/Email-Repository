@@ -37,7 +37,8 @@ export EMAIL_FROM="Your Name <your.email@gmail.com>"
 ## Customize what gets scanned
 
 Update the `BUSINESSES` list in `app.py` with the business types and URLs you
-want the assistant to evaluate.
+want the assistant to evaluate. Use the UI fields to set the target location
+and industry that should be referenced in the outreach email.
 
 ## Controls
 

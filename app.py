@@ -33,6 +33,10 @@ RUN_STATE = {
     "thread": None,
     "stop_event": threading.Event(),
 }
+SETTINGS = {
+    "location": "your area",
+    "industry": "local businesses",
+}
 LOGS = []
 LOG_LOCK = threading.Lock()
 
@@ -151,13 +155,15 @@ def generate_email(business, scores):
     subject = f"Quick website wins for {business['name']}"
     body = (
         f"Hi {business['name']} team,\n\n"
-        f"I was reviewing local {business['category']} sites and took a quick look at {business['url']}. "
-        f"I noticed {issues}. Right now the site scored about {scores['seo']}/100 for SEO, "
-        f"{scores['design']}/100 for design, and {scores['viewability']}/100 for viewability.\n\n"
-        "If you want, I can share a short, human-friendly audit with screenshots and a priority list of fixes. "
-        "No pressure—just happy to help if you want to improve rankings and conversions.\n\n"
-        "Would you like me to send that over?\n\n"
-        "Best,\n"
+        f"I was looking at {SETTINGS['industry']} websites in {SETTINGS['location']} and came across "
+        f"{business['url']}. I noticed {issues}. I ran a quick scan and the site landed around "
+        f"{scores['seo']}/100 for SEO, {scores['design']}/100 for design, and "
+        f"{scores['viewability']}/100 for viewability.\n\n"
+        "If it's helpful, I can send over a short, plain-English audit with screenshots and a "
+        "priority list of fixes. No pressure at all—just offering a hand if you want to lift "
+        "rankings or conversions.\n\n"
+        "Want me to send that over?\n\n"
+        "Thanks,\n"
         "Your Name"
     )
     return subject, body
@@ -202,6 +208,14 @@ def run_worker():
         for business in BUSINESSES:
             if RUN_STATE["stop_event"].is_set():
                 break
+
+            industry = SETTINGS["industry"].strip().lower()
+            if industry and industry != "all" and industry not in business["category"].lower():
+                log_event(
+                    f"Skipping {business['name']} (category {business['category']}) "
+                    f"because it does not match '{SETTINGS['industry']}'."
+                )
+                continue
 
             scores = analyze_site(business["url"])
             low_scores = [
@@ -259,7 +273,31 @@ def stop():
 
 @app.route("/status")
 def status():
-    return jsonify({"running": RUN_STATE["running"]})
+    return jsonify(
+        {
+            "running": RUN_STATE["running"],
+            "location": SETTINGS["location"],
+            "industry": SETTINGS["industry"],
+        }
+    )
+
+
+@app.route("/settings", methods=["POST"])
+def update_settings():
+    payload = request.get_json(silent=True) or {}
+    location = (payload.get("location") or "").strip()
+    industry = (payload.get("industry") or "").strip()
+
+    if location:
+        SETTINGS["location"] = location
+    if industry:
+        SETTINGS["industry"] = industry
+
+    log_event(
+        f"Settings updated: location='{SETTINGS['location']}', "
+        f"industry='{SETTINGS['industry']}'."
+    )
+    return jsonify({"status": "updated", **SETTINGS})
 
 
 @app.route("/logs")
