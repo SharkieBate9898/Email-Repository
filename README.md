@@ -38,7 +38,16 @@ export EMAIL_FROM="Your Name <your.email@gmail.com>"
 
 Update the `BUSINESSES` list in `app.py` with the business types and URLs you
 want the assistant to evaluate. Use the UI fields to set the target location
-and industry that should be referenced in the outreach email.
+and industry that should be referenced in the outreach email. You can also
+edit the outreach and follow-up templates using placeholders like
+`{business_name}` and `{business_url}` to personalize each email.
+
+## Outreach list and follow-ups
+
+The assistant tracks who has been contacted, how many times, and the last send
+time in the **Outreach List**. If a contact has not replied, the assistant will
+send a follow-up after 24 hours. Use the **Mark replied** button to stop
+follow-ups for that business.
 
 ## Controls
 

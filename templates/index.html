@@ -29,6 +29,38 @@
             Target industry
             <input id="industry" type="text" placeholder="e.g. gyms, cafes, salons" />
           </label>
+          <label class="full-width">
+            Email subject template
+            <input
+              id="email-subject"
+              type="text"
+              placeholder="Quick website wins for {business_name}"
+            />
+          </label>
+          <label class="full-width">
+            Email body template
+            <textarea
+              id="email-body"
+              rows="8"
+              placeholder="Use {business_name}, {business_url}, {location}, {industry}, {seo_score}, {design_score}, {viewability_score}, {issues}."
+            ></textarea>
+          </label>
+          <label class="full-width">
+            Follow-up subject template
+            <input
+              id="followup-subject"
+              type="text"
+              placeholder="Checking in about {business_name}'s website"
+            />
+          </label>
+          <label class="full-width">
+            Follow-up body template
+            <textarea
+              id="followup-body"
+              rows="6"
+              placeholder="Use {business_name} and {business_url} placeholders."
+            ></textarea>
+          </label>
           <button id="save-settings" class="secondary">Save Settings</button>
         </div>
         <button id="toggle" class="primary">Start Assistant</button>
@@ -40,6 +72,22 @@
       <section class="card logs">
         <h2>Activity Log</h2>
         <ul id="log-list"></ul>
+      </section>
+      <section class="card contacts">
+        <h2>Outreach List</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Business</th>
+              <th>Website</th>
+              <th>Times Contacted</th>
+              <th>Last Sent</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="contact-list"></tbody>
+        </table>
       </section>
     </main>
     <script src="/static/app.js"></script>

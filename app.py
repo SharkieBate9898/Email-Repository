@@ -1,6 +1,5 @@
 import os
 import threading
-import time
 from datetime import datetime
 from email.message import EmailMessage
 
@@ -36,9 +35,35 @@ RUN_STATE = {
 SETTINGS = {
     "location": "your area",
     "industry": "local businesses",
+    "email_subject_template": "Quick website wins for {business_name}",
+    "email_body_template": (
+        "Hi {business_name} team,\n\n"
+        "I was looking at {industry} websites in {location} and came across {business_url}. "
+        "I noticed {issues}. I ran a quick scan and the site landed around "
+        "{seo_score}/100 for SEO, {design_score}/100 for design, and "
+        "{viewability_score}/100 for viewability.\n\n"
+        "If it's helpful, I can send over a short, plain-English audit with screenshots and a "
+        "priority list of fixes. No pressure at all—just offering a hand if you want to lift "
+        "rankings or conversions.\n\n"
+        "Want me to send that over?\n\n"
+        "Thanks,\n"
+        "Your Name"
+    ),
+    "followup_subject_template": "Checking in about {business_name}'s website",
+    "followup_body_template": (
+        "Hi {business_name} team,\n\n"
+        "Just following up on my earlier note about {business_url}. "
+        "If you're open to it, I can send a quick audit with the top fixes. "
+        "Totally fine if now isn't the right time.\n\n"
+        "Best,\n"
+        "Your Name"
+    ),
 }
 LOGS = []
 LOG_LOCK = threading.Lock()
+CONTACTS = {}
+CONTACT_LOCK = threading.Lock()
+FOLLOWUP_AFTER_SECONDS = 86400
 
 
 def log_event(message):
@@ -150,22 +175,39 @@ def analyze_site(url):
     }
 
 
-def generate_email(business, scores):
+def render_template(template, context):
+    class SafeDict(dict):
+        def __missing__(self, key):
+            return "{" + key + "}"
+
+    return template.format_map(SafeDict(context))
+
+
+def build_email_context(business, scores):
     issues = ", ".join(scores["issues"]) if scores["issues"] else "a few quick wins"
-    subject = f"Quick website wins for {business['name']}"
-    body = (
-        f"Hi {business['name']} team,\n\n"
-        f"I was looking at {SETTINGS['industry']} websites in {SETTINGS['location']} and came across "
-        f"{business['url']}. I noticed {issues}. I ran a quick scan and the site landed around "
-        f"{scores['seo']}/100 for SEO, {scores['design']}/100 for design, and "
-        f"{scores['viewability']}/100 for viewability.\n\n"
-        "If it's helpful, I can send over a short, plain-English audit with screenshots and a "
-        "priority list of fixes. No pressure at all—just offering a hand if you want to lift "
-        "rankings or conversions.\n\n"
-        "Want me to send that over?\n\n"
-        "Thanks,\n"
-        "Your Name"
-    )
+    return {
+        "business_name": business["name"],
+        "business_url": business["url"],
+        "industry": SETTINGS["industry"],
+        "location": SETTINGS["location"],
+        "issues": issues,
+        "seo_score": scores["seo"],
+        "design_score": scores["design"],
+        "viewability_score": scores["viewability"],
+    }
+
+
+def generate_email(business, scores):
+    context = build_email_context(business, scores)
+    subject = render_template(SETTINGS["email_subject_template"], context)
+    body = render_template(SETTINGS["email_body_template"], context)
+    return subject, body
+
+
+def generate_followup_email(business, scores):
+    context = build_email_context(business, scores)
+    subject = render_template(SETTINGS["followup_subject_template"], context)
+    body = render_template(SETTINGS["followup_body_template"], context)
     return subject, body
 
 
@@ -225,8 +267,45 @@ def run_worker():
             ]
 
             if low_scores and target_email:
-                subject, body = generate_email(business, scores)
-                send_email(target_email, subject, body)
+                now = datetime.utcnow()
+                with CONTACT_LOCK:
+                    contact = CONTACTS.get(business["name"])
+
+                should_send = False
+                send_followup = False
+
+                if contact is None:
+                    should_send = True
+                elif contact.get("replied"):
+                    log_event(f"Skipping {business['name']} because they replied already.")
+                else:
+                    last_sent = contact.get("last_sent")
+                    if last_sent and (now - last_sent).total_seconds() >= FOLLOWUP_AFTER_SECONDS:
+                        should_send = True
+                        send_followup = True
+                    else:
+                        log_event(
+                            f"Waiting to follow up with {business['name']} (last sent {last_sent})."
+                        )
+
+                if should_send:
+                    if send_followup:
+                        subject, body = generate_followup_email(business, scores)
+                    else:
+                        subject, body = generate_email(business, scores)
+
+                    if send_email(target_email, subject, body):
+                        with CONTACT_LOCK:
+                            existing = CONTACTS.get(business["name"], {})
+                            count = existing.get("count", 0) + 1
+                            CONTACTS[business["name"]] = {
+                                "name": business["name"],
+                                "url": business["url"],
+                                "count": count,
+                                "first_sent": existing.get("first_sent", now),
+                                "last_sent": now,
+                                "replied": existing.get("replied", False),
+                            }
             elif low_scores:
                 log_event(
                     f"Low scores found for {business['name']} but TARGET_EMAIL is not set."
@@ -276,8 +355,7 @@ def status():
     return jsonify(
         {
             "running": RUN_STATE["running"],
-            "location": SETTINGS["location"],
-            "industry": SETTINGS["industry"],
+            "settings": SETTINGS,
         }
     )
 
@@ -285,19 +363,58 @@ def status():
 @app.route("/settings", methods=["POST"])
 def update_settings():
     payload = request.get_json(silent=True) or {}
-    location = (payload.get("location") or "").strip()
-    industry = (payload.get("industry") or "").strip()
-
-    if location:
-        SETTINGS["location"] = location
-    if industry:
-        SETTINGS["industry"] = industry
+    for key in [
+        "location",
+        "industry",
+        "email_subject_template",
+        "email_body_template",
+        "followup_subject_template",
+        "followup_body_template",
+    ]:
+        if key in payload and (payload[key] or "").strip():
+            SETTINGS[key] = payload[key].strip()
 
     log_event(
         f"Settings updated: location='{SETTINGS['location']}', "
         f"industry='{SETTINGS['industry']}'."
     )
     return jsonify({"status": "updated", **SETTINGS})
+
+
+@app.route("/contacts")
+def contacts():
+    with CONTACT_LOCK:
+        contacts_list = []
+        for entry in CONTACTS.values():
+            contacts_list.append(
+                {
+                    **entry,
+                    "first_sent": entry["first_sent"].isoformat()
+                    if entry.get("first_sent")
+                    else None,
+                    "last_sent": entry["last_sent"].isoformat()
+                    if entry.get("last_sent")
+                    else None,
+                }
+            )
+    contacts_list.sort(key=lambda item: item["last_sent"] or "", reverse=True)
+    return jsonify({"contacts": contacts_list})
+
+
+@app.route("/contacts/reply", methods=["POST"])
+def mark_replied():
+    payload = request.get_json(silent=True) or {}
+    name = (payload.get("name") or "").strip()
+    if not name:
+        return jsonify({"status": "missing_name"}), 400
+
+    with CONTACT_LOCK:
+        if name not in CONTACTS:
+            return jsonify({"status": "not_found"}), 404
+        CONTACTS[name]["replied"] = True
+
+    log_event(f"Marked {name} as replied.")
+    return jsonify({"status": "updated"})
 
 
 @app.route("/logs")

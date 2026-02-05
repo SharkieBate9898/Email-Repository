@@ -41,6 +41,10 @@ h1 {
   margin-bottom: 16px;
 }
 
+.settings .full-width {
+  grid-column: 1 / -1;
+}
+
 .settings label {
   display: flex;
   flex-direction: column;
@@ -49,11 +53,17 @@ h1 {
   gap: 8px;
 }
 
-.settings input {
+.settings input,
+.settings textarea {
   border: 1px solid #d1d5db;
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 14px;
+}
+
+.settings textarea {
+  resize: vertical;
+  font-family: inherit;
 }
 
 button.primary {
@@ -86,6 +96,11 @@ button.secondary {
   align-self: end;
 }
 
+.secondary.small {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
 .settings button.secondary:disabled {
   opacity: 0.7;
   cursor: not-allowed;
@@ -106,4 +121,26 @@ button.secondary {
   padding: 8px 0;
   border-bottom: 1px solid #e5e7eb;
   font-size: 14px;
+}
+
+.contacts table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.contacts th,
+.contacts td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.contacts th {
+  color: #374151;
+}
+
+.contacts a {
+  color: #2563eb;
+  text-decoration: none;
 }
