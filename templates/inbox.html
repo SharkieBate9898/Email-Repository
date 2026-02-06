@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ folder }} · Email Repository{% endblock %}
+{% block content %}
+<section class="card">
+  <h2>{{ folder }}</h2>
+  {% if messages %}
+  <table>
+    <thead>
+      <tr>
+        <th>Subject</th>
+        <th>From</th>
+        <th>To</th>
+        <th>Time</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for message in messages %}
+      <tr>
+        <td><a href="{{ url_for('message_detail', message_id=message.id) }}">{{ message.subject }}</a></td>
+        <td>{{ message.sender }}</td>
+        <td>{{ message.recipient }}</td>
+        <td>{{ message.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No messages in {{ folder|lower }}.</p>
+  {% endif %}
+</section>
+{% endblock %}

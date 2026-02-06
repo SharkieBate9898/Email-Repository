@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ message.subject }} · Email Repository{% endblock %}
+{% block content %}
+<article class="card">
+  <h2>{{ message.subject }}</h2>
+  <p><strong>From:</strong> {{ message.sender }}</p>
+  <p><strong>To:</strong> {{ message.recipient }}</p>
+  <p><strong>Sent:</strong> {{ message.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+  <hr />
+  <p class="body">{{ message.body }}</p>
+</article>
+{% endblock %}

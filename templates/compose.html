@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Compose · Email Repository{% endblock %}
+{% block content %}
+<section class="card form-card">
+  <h2>Compose Message</h2>
+  {% if error %}
+    <p class="error">{{ error }}</p>
+  {% endif %}
+  <form method="post">
+    <label>
+      To
+      <input type="email" name="recipient" required placeholder="person@example.com" />
+    </label>
+    <label>
+      Subject
+      <input type="text" name="subject" required placeholder="Subject" />
+    </label>
+    <label>
+      Message
+      <textarea name="body" rows="8" required placeholder="Write your message..."></textarea>
+    </label>
+    <button type="submit">Send</button>
+  </form>
+</section>
+{% endblock %}
